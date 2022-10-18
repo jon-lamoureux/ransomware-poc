@@ -13,13 +13,11 @@ void encrypt(unsigned char *key, unsigned char *iv) {
     ctx = EVP_CIPHER_CTX_new(); // New ctx cipher
     
     // Initiate cipher and store key/iv in it
-    EVP_CipherInit_ex(ctx, EVP_aes_256_cbc(), NULL, NULL, NULL, 1);
-    
-    OPENSSL_assert(EVP_CIPHER_CTX_key_length(ctx) == 32); // 256-bit AES key is 32 bytes
-    OPENSSL_assert(EVP_CIPHER_CTX_iv_length(ctx) == block_size); // Block size is 16
-    
+    EVP_CipherInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv, 1);
+
     // Buffer paramters
-    unsigned char buffer[1024], buffer_out[1024 + block_size];
+    unsigned char buffer[1024];
+    unsigned char buffer_out[1024 + block_size];
 
     // File information -- only one for testing right now
     FILE *curr_file, *temp_output;
