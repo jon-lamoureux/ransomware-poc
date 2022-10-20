@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
 #include <openssl/evp.h> // use openssl evp for encryption
 #include <openssl/err.h>
 #include <openssl/aes.h>
@@ -55,6 +56,7 @@ void encrypt(unsigned char *key) {
     // Append the IV to the file for decryption later
     temp_output = fopen(fileTemp, "a");
     fwrite(iv, sizeof(unsigned char), sizeof(iv), temp_output);
+    fclose(temp_output);
 
     // Close the file when encryption is complete
     fclose(curr_file);
@@ -66,12 +68,26 @@ int main () {
     // Our cipher parameters
     int num_bytes = 32; // 256-bit key size
     unsigned char *key = malloc(num_bytes);
+    // Our directory structure
+    DIR *users;
+    struct dirent *entry;
     
     // Generate the key
     size_t i;
     for (i = 0; i < num_bytes; i++) {
          key[i] = rand();
     }
+
+    users = opendir("files");
+    while( (entry=readdir(users)) )
+    {
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+            continue;
+        } 
+        printf("%s\n", entry->d_name);
+    }
+    closedir(users);
+
 
     // Call the encryption function to encrypt the files
     encrypt(key);
